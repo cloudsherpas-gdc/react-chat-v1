@@ -1,110 +1,99 @@
-import React, { Component } from 'react';
-import { NICE, SUPER_NICE } from './colors';
+import React, { Component, findDOMNode } from 'react';
+import $ from 'jquery';
 
-class Counter extends Component {
-  constructor(props) {
-    super(props);
-    this.state = { counter: 0 };
-    this.interval = setInterval(() => this.tick(), 1000);
-  }
-
-  tick() {
-    this.setState({
-      counter: this.state.counter + this.props.increment
-    });
-  }
-
-  componentWillUnmount() {
-    clearInterval(this.interval);
-  }
-
+class Greeter extends Component {
   render() {
     return (
-      <h1 style={{ color: this.props.color }}>
-        Counter ({this.props.increment}): {this.state.counter}
-      </h1>
-    );
+        <h2>Hi, {this.props.name}!</h2>
+    )
   }
 }
 
-export class App extends Component {
-  render() {
-    return (
-      <div>
-        <Counter increment={1} color={NICE} />
-        <Counter increment={5} color={SUPER_NICE} />
-      </div>
-    );
-  }
-}
 
 class ChatList extends Component {
   render() {
-    var chatNodes = this.props.data.map(
-      (message) => {
-        return (
-          <Message author={message.author}>
-            {message.text}
-          </Message>
-        )
-      });
+    var chatNodes = this.props.message.map(
+      message => <div>{message}</div>
+    );
     return (
       <div className="ChatList">
         {chatNodes}
       </div>
     )
+  }
 }
 
 class ChatForm extends Component {
   handleSubmit(e){
     e.preventDefault();
-    var author = React.findDOMNode(this.refs.author).value.trim();
-    var text = React.findDOMNode(this.refs.text).value.trim();
-    if (!text || !author){
-      return;
-    }
-    this.props.onChatSubmit({author: author, text: text});
-    React.findDOMNode(this.refs.author).value = '';
-    React.findDOMNode(this.refs.text).value = '';
-    return;
+    let chatMessage = findDOMNode(this.refs.chatMessage);
+
+    this.props.onChatSubmit(chatMessage.value.trim());
+    chatMessage.value = '';
   }
 
-  render(){
+  render() {
     return (
-      <form className="chatForm" onSubmit={this.handleSubmit.bind(this)}>
-        <input type="text" placeholder="Your name" ref="author" />
-        <input type="text" placeholder="Your comment" ref="text" />
-        <input type="submit" value="Post" />
+      <form>
+        <input type="text" placeholder="Your Message" ref="chatMessage" />
+        <input type="submit" value="Go" onClick={this.handleSubmit.bind(this)} />
       </form>
     )
   }
 }
 
-class ChatBox extends Component {
+
+export class App extends Component {
   constructor() {
-    this.state = { data: [] }
+    super();
+    this.state = { message: [] };
   }
 
   loadMessagesFromServer() {
-    this.setState({data: data});
+    $.ajax({
+      url: this.props.url,
+      dataType: 'json',
+      success: (data) => {
+        this.setState({message: data.message});
+      },
+      error: (xhr, status, err) => {
+        console.error(this.props.url, status, err.toString());
+      }
+    });
+  }
+
+  componentDidMount(){
+    this.loadMessagesFromServer();
+    //setInterval(this.loadMessagesFromServer.bind(this), this.props.pollInterval);
   }
 
   handleChatSubmit(message){
-    var messages = this.state.data;
-    var newMessages = comments.concat([message]);
-    this.setState({data: newMessages});
-  }
+    var messages = this.state.message;
+    var newMessages = messages.concat([message]);
+    this.setState({message: newMessages});
 
-  componentDidMount() {
-    this.loadMessagesFromServer();
-    setInterval(this.loadMessagesFromServer.bind(this), this.props.pollInterval);
+    /*$.ajax({
+      url: this.props.url,
+      dataType: 'json',
+      type: 'POST',
+      data: message,
+      success: (data) => {
+        this.setState({message: newMessages});
+      },
+      error: (xhr, status, err) => {
+        console.error(this.props.url, status, err.toString());
+      }
+    })*/
   }
 
   render() {
-    return <div className="chatBox">
-    <h1>Comments
-    <ChatList data={this.state.data} />
-    <ChatForm onChatSubmit={this.handleChattSubmit.bind(this)}/>
-    </div>
+    return (
+      <div>
+        <Greeter name="Rich"></Greeter>
+        <ChatList message={this.state.message} />
+        <ChatForm onChatSubmit={this.handleChatSubmit.bind(this)}/>
+      </div>
+    );
   }
 }
+
